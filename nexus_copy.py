@@ -430,21 +430,47 @@ def tag_docker_images(source, destination):
 if __name__ == "__main__":
     msg = "Nexus API functions"
     parser = argparse.ArgumentParser(description=msg)
-    parser.add_argument("--source-server", help="Source Server to use. Can also be set via SOURCE_NEXUS_SERVER env variable.")
     parser.add_argument(
-        "--destination-server", help="Destination Server to use. Can also be set via DESTINATION_NEXUS_SERVER env variable."
+        "--file",
+        help="Action file to configure actions to perform. Yaml format."
     )
-    parser.add_argument("--source-user", help="Source server username. Can also be set via SOURCE_NEXUS_USER env variable.")
-    parser.add_argument("--source-password", help="""Source server password. If passed without value the script will prompt for a password.
-                        Can also be set via SOURCE_NEXUS_PASSWORD env variable.""", nargs='?', const='ask', default=None)
-    parser.add_argument("--destination-user", help="Destination server username. Can also be set via DESTINATION_NEXUS_USER env variable.")
     parser.add_argument(
-        "--destination-password", help="""Destination server password. If passed without value the script will prompt for a password.
-        Can also be set via DESTINATION_NEXUS_PASSWORD env variable.""", nargs='?', const='ask', default=None
+        "--source-server",
+        help="""
+            Source Server to use.
+            Can also be set via SOURCE_NEXUS_SERVER env variable or in the action file.
+        """
     )
-
-    parser.add_argument("--file", help="File to read actions from. Yaml format.")
-
+    parser.add_argument(
+        "--destination-server",
+        help="""
+            Destination Server to use. Can also be set via DESTINATION_NEXUS_SERVER env variable or in the action file.
+            """
+    )
+    parser.add_argument(
+        "--source-user",
+        help="Source server username. Can also be set via SOURCE_NEXUS_USER env variable or in the action file."
+    )
+    parser.add_argument(
+        "--source-password",
+        help="""
+            Source server password. If passed without value the script will prompt for a password.
+            Can also be set via SOURCE_NEXUS_PASSWORD env variable or in the action file.
+        """, 
+        nargs='?', const='ask', default=None
+    )
+    parser.add_argument(
+        "--destination-user",
+        help="Destination server username. Can also be set via DESTINATION_NEXUS_USER env variable or in the action file."
+    )
+    parser.add_argument(
+        "--destination-password",
+        help="""
+            Destination server password. If passed without value the script will prompt for a password.
+            Can also be set via DESTINATION_NEXUS_PASSWORD env variable or in the action file.
+        """,
+        nargs='?', const='ask', default=None
+    )
     parser.add_argument("--list-assets", help="Repo to list assets from.")
     parser.add_argument("--list-components", help="Repo to list components from.")
     parser.add_argument("--local-path", help="Local path to download to / upload from. Default = './'", default='./')
