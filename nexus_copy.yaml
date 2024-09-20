@@ -1,0 +1,36 @@
+config:
+  # local_path: 
+  source_server: https://<source repo server>
+  # source_user: admin
+  # source_password: admin123
+  destination_server: https://<destination repo server>
+  # destination_user: admin
+  # destination_password: admin123
+  docker_source_server: <source docker repo server>
+  docker_destination_server: <destination docker repo server>
+  default_action: both
+actions:
+  # - repo: <repo-name>
+    # description: Get & upload <repo-name> repo
+    # type: <type>
+    # action: both  # default, can be omitted
+    # path: data/<repo>  # default, can be omitted
+    # active: true  # default, can be omitted
+  - repo: docker
+    description: Get & upload docker repo
+    type: docker
+    # source: <source docker repo server>
+    # destination: <destination docker repo server>
+    active: false
+  - repo: releases
+    description: Get & upload releasesxt repo
+    type: maven2
+    active: false
+  - repo: linux2-repackaged-yum
+    description: Get & upload linux2-repackaged-yum repo
+    type: yum
+    active: false
+  - repo: repackaged-all 
+    description: Get & upload repackaged-all repo
+    type: apt
+    active: false
