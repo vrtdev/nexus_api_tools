@@ -1,36 +1,41 @@
-config:
-  # local_path: 
-  source_server: https://<source repo server>
-  # source_user: admin
-  # source_password: admin123
-  destination_server: https://<destination repo server>
-  # destination_user: admin
-  # destination_password: admin123
-  docker_source_server: <source docker repo server>
-  docker_destination_server: <destination docker repo server>
-  default_action: both
+# local_path:
+source:
+  host: https://nexus-public.core.a51.be
+  # docker_host: <source docker repo host>
+  user: admin
+  password: FILL_PASSWORD_HERE
+destination:
+  host: https://nexus.core.a51.be
+  # docker_host: <destination docker repo host>
+  # user: admin
+  # password: admin123
+# default_action: both
+default_action: list_components
+# default_action: list_assets
 actions:
   # - repo: <repo-name>
     # description: Get & upload <repo-name> repo
-    # type: <type>
+    # repo_type: <repo_type>
     # action: both  # default, can be omitted
     # path: data/<repo>  # default, can be omitted
     # active: true  # default, can be omitted
-  - repo: docker
-    description: Get & upload docker repo
-    type: docker
-    # source: <source docker repo server>
-    # destination: <destination docker repo server>
-    active: false
-  - repo: releases
-    description: Get & upload releasesxt repo
-    type: maven2
-    active: false
-  - repo: linux2-repackaged-yum
-    description: Get & upload linux2-repackaged-yum repo
-    type: yum
-    active: false
-  - repo: repackaged-all 
-    description: Get & upload repackaged-all repo
-    type: apt
-    active: false
+  # - repo: docker
+    # description: Get & upload docker repo
+    # repo_type: docker
+    # source:
+      # docker_host: <source docker repo host>
+    # destination:
+      # docker_host: <destination docker repo host>
+    # active: false
+  - repo: vrt-releases
+    description: Get & upload vrt-releases repo
+    repo_type: maven2
+  - repo: vrt-snapshots
+    description: Get & upload vrt-snapshots repo
+    repo_type: maven2
+  - repo: vrtnu-design-system
+    description: Get & upload vrtnu-design-system repo
+    repo_type: npm
+  - repo: vrt-npm
+    description: Get & upload vrt-npm repo
+    repo_type: npm
