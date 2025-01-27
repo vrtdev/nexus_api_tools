@@ -9,8 +9,7 @@ destination:
   # docker_host: <destination docker repo host>
   # user: admin
   # password: admin123
-# default_action: both
-default_action: list_components
+default_action: both
 # default_action: list_assets
 actions:
   # - repo: <repo-name>
