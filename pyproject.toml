@@ -1,0 +1,51 @@
+[project]
+name = "nexus-api-tools"
+version = "0.1.0"
+description = "Tools to migrate repositories between Nexus servers"
+authors = [
+    { name = " @zipkid" },
+    { name = " @jvdmr" }
+]
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "GPLv3" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Software Distribution",
+]
+
+[project.scripts]
+nexus-copy = "nexus_api_tools.nexus_copy:main"
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = ["test_*.py"]
+pythonpath = ["."]
+
+[tool.black]
+line-length = 88
+target-version = ["py37"]
+include = '\.pyi?$'
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = "E203"
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[project.urls]
+"Repository" = "https://github.com/vrtdev/nexus_api_tools"
+"Bug Tracker" = "https://github.com/vrtdev/nexus_api_tools/issues"
