@@ -84,7 +84,11 @@ class NexusCopy:
                 case _:
                     pass
 
-            path = action.path or f'data/{action.repo}'
+            path = config.local_path
+            if path == '.':
+                path += '/data'
+            path += '/'
+            path += action.path or action.repo
             print(f"\tpath : {path}")
 
             if action.repo_type == 'docker':
@@ -508,7 +512,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--list-assets", help="Repo to list assets from.")
     parser.add_argument("--list-components", help="Repo to list components from.")
-    parser.add_argument("--local-path", help="Local path to download to / upload from. Default = './'", default='./')
+    parser.add_argument("--local-path", help="Local path to download to / upload from. Default = '.'", default='.')
     parser.add_argument("--download-assets", help="Repo to download from.")
     parser.add_argument("--upload-type", help="Repo type to upload.")
     parser.add_argument("--upload-components", help="Repo to upload components to.")

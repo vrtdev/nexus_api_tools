@@ -104,20 +104,20 @@ class TestConfig:
 
         # Assert that the source and destination are correctly parsed
         assert isinstance(config.source, NexusServer)
-        assert config.source.host == 'source.example.com/'
+        assert config.source.host == 'source.example.com'
         assert config.source.user == 'source_user'
         assert config.source.password == 'source_pass'
-        assert config.source.docker_host == 'source_docker.example.com/'
+        assert config.source.docker_host == 'source_docker.example.com'
 
         assert isinstance(config.destination, NexusServer)
-        assert config.destination.host == 'dest.example.com/'
+        assert config.destination.host == 'dest.example.com'
         assert config.destination.user == 'dest_user'
         assert config.destination.password == 'dest_pass'
-        assert config.destination.docker_host == 'dest_docker.example.com/'
+        assert config.destination.docker_host == 'dest_docker.example.com'
 
         # Assert that default_action and local_path are correctly parsed
         assert config.default_action == 'copy'
-        assert config.local_path == '/tmp/local/'
+        assert config.local_path == '/tmp/local'
 
         # Assert that actions are correctly parsed
         assert len(config.actions) == 2
@@ -134,7 +134,7 @@ class TestConfig:
     def test_set_host(self, tmp_path):
         """Test host setter method - will not automatically add trailing '/'"""
         yaml_content = {
-            'local_path': '/tmp/local',
+            'local_path': '/tmp/local/',
             'actions': [
                 {
                     'repo': 'repo1',
@@ -147,8 +147,14 @@ class TestConfig:
             yaml.dump(yaml_content, f)
 
         config = NexusCopyConfig.from_yaml(str(yaml_file))
+        assert config.local_path == "/tmp/local"
+
         config.local_path = "test"
         assert config.local_path == "test"
-
         config.fix_paths()
+        assert config.local_path == "test"
+
+        config.local_path = "test/"
         assert config.local_path == "test/"
+        config.fix_paths()
+        assert config.local_path == "test"

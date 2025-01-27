@@ -34,11 +34,11 @@ class NexusServer(MergeableDataclass):
     docker_host: Optional[str] = None
 
     def fix_paths(self):
-        # Ensure `host` and `docker_host` always ends with a '/'
-        if self.host and not self.host.endswith("/"):
-            self.host += "/"
-        if self.docker_host and not self.docker_host.endswith("/"):
-            self.docker_host += "/"
+        # Ensure `host` and `docker_host` never ends with a '/'
+        if self.host and self.host.endswith("/"):
+            self.host = self.host[:-1]
+        if self.docker_host and self.docker_host.endswith("/"):
+            self.docker_host = self.docker_host[:-1]
 
     def __post_init__(self):
         self.fix_paths()
@@ -57,9 +57,9 @@ class Action:
     path: Optional[str] = None
 
     def fix_paths(self):
-        # Ensure `path` always ends with a '/'
-        if self.path and not self.path.endswith("/"):
-            self.path += "/"
+        # Ensure `path` never ends with a '/'
+        if self.path and self.path.endswith("/"):
+            self.path = self.path[:-1]
 
     def __post_init__(self):
         self.fix_paths()
@@ -73,11 +73,12 @@ class NexusCopyConfig:
     source: NexusServer = field(default_factory=NexusServer)
     destination: NexusServer = field(default_factory=NexusServer)
     default_action: Optional[str] = "both"
-    local_path: str = "./"
+    local_path: str = "."
 
     def fix_paths(self):
-        if self.local_path and not self.local_path.endswith("/"):
-            self.local_path += "/"
+        # Ensure `local_path` never ends with a '/'
+        if self.local_path and self.local_path.endswith("/"):
+            self.local_path = self.local_path[:-1]
 
     def __post_init__(self):
         self.fix_paths()
