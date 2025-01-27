@@ -50,6 +50,7 @@ class Action:
     active: bool = True
     source: NexusServer = field(default_factory=NexusServer)
     destination: NexusServer = field(default_factory=NexusServer)
+    target_repo: Optional[str] = None
     repo_type: Optional[str] = None
     description: Optional[str] = None
     action: Optional[str] = None
@@ -62,6 +63,8 @@ class Action:
 
     def __post_init__(self):
         self.fix_paths()
+        if not self.target_repo:
+            self.target_repo = self.repo
 
 
 @dataclass

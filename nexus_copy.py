@@ -62,7 +62,7 @@ class NexusCopy:
             action.source = replace(self.ncconfig.source).merge(action.source)
             action.destination = replace(self.ncconfig.destination).merge(action.destination)
 
-            log_print(f"Processing action : {action.repo}")
+            log_print(f"Processing action : {action.repo} -> {action.target_repo}")
             # pprint.pprint(action)
 
             if not action.active:
@@ -108,11 +108,11 @@ class NexusCopy:
                         self.download_repo_assets(action.repo, action.source, path)
                         return
                     case 'upload_components':
-                        self.upload_components(action.repo, action.destination, action.repo_type, path)
+                        self.upload_components(action.target_repo, action.destination, action.repo_type, path)
                         return
                     case 'both':
                         self.download_repo_assets(action.repo, action.source, path)
-                        self.upload_components(action.repo, action.destination, action.repo_type, path)
+                        self.upload_components(action.target_repo, action.destination, action.repo_type, path)
                         return
 
     @staticmethod
