@@ -303,10 +303,10 @@ class NexusCopy:
         items = len(assets)
         for _, asset in assets.items():
             count += 1
-            local_file = f"{path}{asset['path']}"
+            local_file = f"{path}/{asset['path']}"
             if not os.path.exists(local_file) or force_download:
                 if not os.path.exists(os.path.dirname(local_file)):
-                    log_print(f"Creating directory : {path}{os.path.dirname(asset['path'])}")
+                    log_print(f"Creating directory : {path}/{os.path.dirname(asset['path'])}")
                     os.makedirs(os.path.dirname(local_file), exist_ok=True)
                 log_print(f"Downloading asset '{asset['downloadUrl']}' to '{local_file}' - {count}/{items}")
                 response = requests.get(asset['downloadUrl'], allow_redirects=True)
