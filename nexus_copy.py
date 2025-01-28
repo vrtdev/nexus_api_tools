@@ -124,7 +124,7 @@ class NexusCopy:
         return mimetypes.guess_file_type(some_file)[0]
 
     @staticmethod
-    def api_call(url, server: NexusServer, method='GET', files=[], data={}):
+    def api_call(url, server: NexusServer, method='GET', files: list = None, data: dict = None):
         """Generic Nexus Rest API call."""
         start = datetime.now()
         auth = {}
@@ -172,11 +172,11 @@ class NexusCopy:
             log_print(f"Nexus api {method} call failed. Exception : {e}")
             raise SystemExit(e)
 
-    def api_get(self, request, server: NexusServer, files=[], data={}):
+    def api_get(self, request, server: NexusServer):
         url = f"{API_PATH}/{request}"
-        return self.api_call(url, server, 'GET', files, data)
+        return self.api_call(url, server, 'GET')
 
-    def api_post(self, request, server: NexusServer, files=[], data={}):
+    def api_post(self, request, server: NexusServer, files: list, data: dict):
         url = f"{API_PATH}/{request}"
         return self.api_call(url, server, 'POST', files, data)
 
@@ -317,28 +317,29 @@ class NexusCopy:
 
     def upload_component(self, repo, server: NexusServer, local_file, repo_file, asset_type, mime_type):
         """Upload single component <file> to <repo>"""
-        data = None
+        data = {}
         if repo_file is None:
             repo_file = local_file
         repo_path = os.path.dirname(repo_file)
         repo_filename = os.path.basename(repo_file)
-        if asset_type == 'raw':
-            data = {"raw.directory": f"{repo_path}", "raw.asset1.filename": f"{repo_filename}"}
-            files = [(f"{asset_type}.asset1", (repo_file, open(local_file, 'rb'), mime_type))]
-        elif asset_type == 'maven2':
-            data = self.get_maven_info(repo_file)
-            files = [(f"{asset_type}.asset1", (repo_file, open(local_file, 'rb'), mime_type))]
-        elif asset_type == 'yum':
-            data = {"yum.directory": f"{repo_path}", "yum.asset.filename": f"{repo_filename}"}
-            files = [(f"{asset_type}.asset", (repo_file, open(local_file, 'rb'), mime_type))]
-        else:  # apt, npm, pypi, raw, docker, gem, nuget
-            files = [(f"{asset_type}.asset", (repo_file, open(local_file, 'rb'), mime_type))]
+        match asset_type:
+            case 'raw':
+                data = {"raw.directory": f"{repo_path}", "raw.asset1.filename": f"{repo_filename}"}
+                files = [(f"{asset_type}.asset1", (repo_file, open(local_file, 'rb'), mime_type))]
+            case 'maven2':
+                data = self.get_maven_info(repo_file)
+                files = [(f"{asset_type}.asset1", (repo_file, open(local_file, 'rb'), mime_type))]
+            case 'yum':
+                data = {"yum.directory": f"{repo_path}", "yum.asset.filename": f"{repo_filename}"}
+                files = [(f"{asset_type}.asset", (repo_file, open(local_file, 'rb'), mime_type))]
+            case _: # apt, npm, pypi, raw, docker, gem, nuget
+                files = [(f"{asset_type}.asset", (repo_file, open(local_file, 'rb'), mime_type))]
         self.api_post(f"components?repository={repo}", server, files, data)
 
     def upload_components(self, repo, server: NexusServer, asset_type, path='.', overwrite=False):
         """Upload all component files found in <path> to <repo>"""
-        filter = ASSET_TYPE_FILTERS.get(asset_type)
-        log_print(f"Uploading {asset_type} Components to repo : {repo} with filter : {filter}")
+        asset_filter = ASSET_TYPE_FILTERS.get(asset_type)
+        log_print(f"Uploading {asset_type} Components to repo : {repo} with filter : {asset_filter}")
         assets = []
         if not overwrite:
             assets, _ = self.get_repo_assets(repo, server)
@@ -351,7 +352,7 @@ class NexusCopy:
                 count += 1
                 # log_print(f"root: {root} - name: {name}")
                 local_file = os.path.join(root, name)
-                if filter is None or re.search(rf"{filter}", name):
+                if asset_filter is None or re.search(rf"{asset_filter}", name):
                     repo_file = local_file.removeprefix(path)
                     if not repo_file.startswith('/'):
                         repo_file = f"/{repo_file}"
