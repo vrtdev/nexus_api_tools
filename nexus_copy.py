@@ -332,7 +332,7 @@ class NexusCopy:
                 extension = re.search(rf"{ASSET_TYPE_FILTERS['maven2']}", local_file).group(0).lstrip('.')
                 local_base_name = local_file.replace(f".{extension}", '')
                 local_pom_file = f"{local_base_name}.pom"
-                pom_exists = os.path.exists(local_pom_file)
+                pom_exists = os.path.exists(local_pom_file) and os.path.getsize(local_pom_file) > 0
                 if pom_exists:
                     pom_mime_type = self.get_file_mime_type(local_pom_file)
                     repo_base_name = repo_file.replace(f".{extension}", '')
