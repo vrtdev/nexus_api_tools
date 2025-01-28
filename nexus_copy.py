@@ -38,7 +38,8 @@ API_PATH = 'service/rest/v1'
 ASSET_TYPE_FILTERS = {
     'apt': r'.(deb|udeb)$',
     'npm': r'.tgz$',
-    'maven2': r'.(jar|zip|xml|pom|war|ear)$',
+    # 'maven2': r'.(jar|zip|xml|pom|war|ear)$',
+    'maven2': r'.(jar|zip|war|ear)$',
     'yum': r'.(rpm|drpm)$',
     'pypi': r'.tar.gz$',
     'rubygems': r'.gem$',
@@ -238,8 +239,8 @@ class NexusCopy:
                     raise ValueError(f"Invalid item_type: {item_type}")
             for asset in item_assets:
                 # log_print(f"asset: {asset}")
-                filter = ASSET_TYPE_FILTERS.get(asset['format'])
-                if filter is None or re.search(rf"{filter}", asset['path']):
+                asset_filter = ASSET_TYPE_FILTERS.get(asset['format'])
+                if asset_filter is None or re.search(rf"{asset_filter}", asset['path']):
                     count += 1
                     if 'format' in asset:
                         if asset['format'] == 'maven2':
@@ -324,14 +325,23 @@ class NexusCopy:
         repo_filename = os.path.basename(repo_file)
         match asset_type:
             case 'raw':
+                files = [(f"{asset_type}.asset1", (repo_file, open(local_file, 'rb'), mime_type))]
                 data = {"raw.directory": f"{repo_path}", "raw.asset1.filename": f"{repo_filename}"}
-                files = [(f"{asset_type}.asset1", (repo_file, open(local_file, 'rb'), mime_type))]
             case 'maven2':
-                data = self.get_maven_info(repo_file)
                 files = [(f"{asset_type}.asset1", (repo_file, open(local_file, 'rb'), mime_type))]
+                extension = re.search(rf"{ASSET_TYPE_FILTERS['maven2']}", local_file).group(0).lstrip('.')
+                local_base_name = local_file.replace(f".{extension}", '')
+                local_pom_file = f"{local_base_name}.pom"
+                pom_exists = os.path.exists(local_pom_file)
+                if pom_exists:
+                    pom_mime_type = self.get_file_mime_type(local_pom_file)
+                    repo_base_name = repo_file.replace(f".{extension}", '')
+                    repo_pom_file = f"{repo_base_name}.pom"
+                    files.append((f"{asset_type}.asset2", (repo_pom_file, open(local_pom_file, 'rb'), pom_mime_type)))
+                data = self.get_maven_info(repo_file, pom_exists)
             case 'yum':
-                data = {"yum.directory": f"{repo_path}", "yum.asset.filename": f"{repo_filename}"}
                 files = [(f"{asset_type}.asset", (repo_file, open(local_file, 'rb'), mime_type))]
+                data = {"yum.directory": f"{repo_path}", "yum.asset.filename": f"{repo_filename}"}
             case _: # apt, npm, pypi, raw, docker, gem, nuget
                 files = [(f"{asset_type}.asset", (repo_file, open(local_file, 'rb'), mime_type))]
         self.api_post(f"components?repository={repo}", server, files, data)
@@ -368,30 +378,42 @@ class NexusCopy:
                     log_print(f"Ignoring filtered local_file: {local_file} - {count}/{file_count}")
 
     @staticmethod
-    def get_maven_info(repo_file):
+    def get_maven_info(repo_file, pom_exists=False):
         """Get maven info from a maven file path"""
         parts = repo_file.split('/')
         if parts[0] == '':
             parts.pop(0)
         file_name = parts.pop(-1)
-        version = parts.pop(-1)
-        artifact_id = parts.pop(-1)
-        groupid = '.'.join(parts)
         # extension = file_name.replace(f"{artifact_id}-{version}.", '')
         extension = re.search(rf"{ASSET_TYPE_FILTERS['maven2']}", file_name).group(0).lstrip('.')
-        info = {
-            'maven2.groupId': groupid,
-            'maven2.artifactId': artifact_id,
-            'maven2.version': version,
+        file_info = {
             'maven2.asset1.extension': extension
         }
-        base_name = file_name.replace(f".{extension}", '')
-        f = rf'{version}-.+$'
-        r = re.search(f, base_name)
-        if r:
-            classifier = r.group(0).replace(f'{version}-', '')
-            info['maven2.asset1.classifier'] = classifier
-        return info
+
+        if pom_exists:
+            pom_info = {
+                **file_info,
+                'maven2.asset2.extension': 'pom'
+            }
+            return pom_info
+
+        else:
+            version = parts.pop(-1)
+            artifact_id = parts.pop(-1)
+            groupid = '.'.join(parts)
+            artefact_info = {
+                'maven2.groupId': groupid,
+                'maven2.artifactId': artifact_id,
+                'maven2.version': version,
+                **file_info
+            }
+            base_name = file_name.replace(f".{extension}", '')
+            f = rf'{version}-.+$'
+            r = re.search(f, base_name)
+            if r:
+                classifier = r.group(0).replace(f'{version}-', '')
+                artefact_info['maven2.asset1.classifier'] = classifier
+            return artefact_info
 
     # Docker
     # https://docs.docker.com/engine/install/debian/
