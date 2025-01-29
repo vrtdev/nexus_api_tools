@@ -169,16 +169,20 @@ class NexusCopy:
             return return_value, response
         except requests.exceptions.ConnectionError as e:
             log_print(f"Nexus api {method} call failed. Error Connecting:", e)
+            print(traceback.format_exc())
             raise SystemExit(e)
         except requests.exceptions.Timeout as e:
             log_print(f"Nexus api {method} call failed. Timeout Error:", e)
+            print(traceback.format_exc())
             raise SystemExit(e)
         except requests.exceptions.HTTPError as e:
             log_print(f"Nexus api {method} call failed. HTTPError : {e}")
             log_print(f"url={url}, files={files}, data={data}, auth={auth}")
+            print(traceback.format_exc())
             raise SystemExit(e)
         except requests.exceptions.RequestException as e:
             log_print(f"Nexus api {method} call failed. RequestException : {e}")
+            print(traceback.format_exc())
             raise SystemExit(e)
         except Exception as e:
             log_print(f"Nexus api {method} call failed. Exception : {e}")
