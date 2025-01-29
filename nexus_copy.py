@@ -14,8 +14,10 @@ import os
 import pprint
 import re
 import subprocess
+import traceback
 from dataclasses import replace
 from datetime import datetime
+from json import JSONDecodeError
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -151,13 +153,16 @@ class NexusCopy:
 
             response.raise_for_status()
             if response.text and response.text != '':
-                return_value = json.loads(response.text)
+                try:
+                    return_value = json.loads(response.text)
+                except JSONDecodeError:
+                    return_value = {"body": response.text}
 
             end = datetime.now()
             call_time = end - start
             # log_print(f"url={url}, files={files}, data={data}, auth={auth}")
             log_print(f"api_call done. time taken: {call_time}")
-            return return_value
+            return return_value, response
         except requests.exceptions.ConnectionError as e:
             log_print(f"Nexus api {method} call failed. Error Connecting:", e)
             raise SystemExit(e)
@@ -173,15 +178,18 @@ class NexusCopy:
             raise SystemExit(e)
         except Exception as e:
             log_print(f"Nexus api {method} call failed. Exception : {e}")
+            print(traceback.format_exc())
             raise SystemExit(e)
 
     def api_get(self, request, server: NexusServer):
         url = f"{API_PATH}/{request}"
-        return self.api_call(url, server, 'GET')
+        return_value, _ = self.api_call(url, server, 'GET')
+        return return_value
 
     def api_post(self, request, server: NexusServer, files: list, data: dict):
         url = f"{API_PATH}/{request}"
-        return self.api_call(url, server, 'POST', files, data)
+        return_value, _ = self.api_call(url, server, 'POST', files, data)
+        return return_value
 
     @staticmethod
     def get_continuationtoken(data):
@@ -312,9 +320,10 @@ class NexusCopy:
                     log_print(f"Creating directory : {path}/{os.path.dirname(asset['path'])}")
                     os.makedirs(os.path.dirname(local_file), exist_ok=True)
                 log_print(f"Downloading asset '{asset['downloadUrl']}' to '{local_file}' - {count}/{items}")
-                response = requests.get(asset['downloadUrl'], allow_redirects=True)
+                _, response = self.api_call(asset['downloadUrl'].replace(f"{server.host}/", ''), server)
                 with open(local_file, 'wb') as f:
                     f.write(response.content)
+                log_print(f"Downloaded file {local_file}, size: {os.path.getsize(local_file)}")
             else:
                 log_print(f"Skipping download of '{local_file}' as it already exists. - {count}/{items}")
 
