@@ -36,14 +36,16 @@ DESTINATION = NexusServer(
 )
 API_PATH = 'service/rest/v1'
 ASSET_TYPE_FILTERS = {
-    'apt': r'.(deb|udeb)$',
-    'npm': r'.tgz$',
-    # 'maven2': r'.(jar|zip|xml|pom|war|ear)$',
-    'maven2': r'.(jar|zip|war|ear)$',
-    'yum': r'.(rpm|drpm)$',
-    'pypi': r'.tar.gz$',
-    'rubygems': r'.gem$',
-    'nuget': r'.nupkg$',
+    'apt': {'all': r'\.(deb|udeb)$'},
+    'npm': {'all': r'\.tgz$'},
+    'maven2': {
+        'all': r'\.((?:-sources\.)?jar|zip|xml|pom|war|ear|aar|module)$',
+        'upload': r'\.((?:-sources\.)?jar|zip|war|ear|aar|module)$',
+    },
+    'yum': {'all': r'\.(rpm|drpm)$'},
+    'pypi': {'all': r'\.tar\.gz$'},
+    'rubygems': {'all': r'\.gem$'},
+    'nuget': {'all': r'\.nupkg$'},
 }
 
 
@@ -240,7 +242,7 @@ class NexusCopy:
             for asset in item_assets:
                 # log_print(f"asset: {asset}")
                 asset_filter = ASSET_TYPE_FILTERS.get(asset['format'])
-                if asset_filter is None or re.search(rf"{asset_filter}", asset['path']):
+                if asset_filter is None or re.search(asset_filter['all'], asset['path']):
                     count += 1
                     if 'format' in asset:
                         if asset['format'] == 'maven2':
@@ -349,7 +351,7 @@ class NexusCopy:
     def upload_components(self, repo, server: NexusServer, asset_type, path='.', overwrite=False):
         """Upload all component files found in <path> to <repo>"""
         asset_filter = ASSET_TYPE_FILTERS.get(asset_type)
-        log_print(f"Uploading {asset_type} Components to repo : {repo} with filter : {asset_filter}")
+        log_print(f"Uploading {asset_type} Components to repo : {repo} with filter : {asset_filter.get('upload', asset_filter['all'])}")
         assets = []
         if not overwrite:
             assets, _ = self.get_repo_assets(repo, server)
@@ -362,7 +364,7 @@ class NexusCopy:
                 count += 1
                 # log_print(f"root: {root} - name: {name}")
                 local_file = os.path.join(root, name)
-                if asset_filter is None or re.search(rf"{asset_filter}", name):
+                if asset_filter is None or re.search(asset_filter.get('upload', asset_filter['all']), name):
                     repo_file = local_file.removeprefix(path)
                     if not repo_file.startswith('/'):
                         repo_file = f"/{repo_file}"
