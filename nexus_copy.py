@@ -42,16 +42,13 @@ DESTINATION = NexusServer(
 )
 API_PATH = 'service/rest/v1'
 ASSET_TYPE_FILTERS = {
-    'apt': {'all': r'\.(deb|udeb)$'},
-    'npm': {'all': r'\.tgz$'},
-    'maven2': {
-        'all': r'\.((?:-sources\.)?jar|zip|xml|pom|war|ear|aar|module)$',
-        'upload': r'\.((?:-sources\.)?jar|zip|war|ear|aar|module)$',
-    },
-    'yum': {'all': r'\.(rpm|drpm)$'},
-    'pypi': {'all': r'\.tar\.gz$'},
-    'rubygems': {'all': r'\.gem$'},
-    'nuget': {'all': r'\.nupkg$'},
+    'apt': r'\.(deb|udeb)$',
+    'npm': r'\.tgz$',
+    'maven2': r'\.((?:-sources\.)?jar|zip|xml|pom|war|ear|aar|module)$',
+    'yum': r'\.(rpm|drpm)$',
+    'pypi': r'\.tar\.gz$',
+    'rubygems': r'\.gem$',
+    'nuget': r'\.nupkg$',
 }
 
 
@@ -258,7 +255,7 @@ class NexusCopy:
             for asset in item_assets:
                 # log_print(f"asset: {asset}")
                 asset_filter = ASSET_TYPE_FILTERS.get(asset['format'])
-                if asset_filter is None or re.search(asset_filter['all'], asset['path']):
+                if asset_filter is None or re.search(asset_filter, asset['path']):
                     count += 1
                     if 'format' in asset:
                         if asset['format'] == 'maven2':
@@ -335,41 +332,37 @@ class NexusCopy:
             else:
                 log_print(f"Skipping download of '{local_file}' as it already exists. - {count}/{items}")
 
-    def upload_component(self, repo, server: NexusServer, local_file, repo_file, asset_type, mime_type):
+    def upload_component(self, repo, server: NexusServer, asset_type, uploadable_files):
         """Upload single component <file> to <repo>"""
         data = {}
-        if repo_file is None:
-            repo_file = local_file
-        repo_path = os.path.dirname(repo_file)
-        repo_filename = os.path.basename(repo_file)
+        repo_path = os.path.dirname(uploadable_files[0]['repo_file'])
         match asset_type:
             case 'raw':
-                files = [(f"{asset_type}.asset1", (repo_file, open(local_file, 'rb'), mime_type))]
-                data = {"raw.directory": f"{repo_path}", "raw.asset1.filename": f"{repo_filename}"}
+                files = [(f"{asset_type}.asset{n}", (f['repo_file'], open(f['local_file'], 'rb'), f['mime_type'])) for n, f in enumerate(uploadable_files)]
+                data = {
+                    f"{asset_type}.directory": f"{repo_path}",
+                    **{f"{asset_type}.asset{n}.filename": f"{os.path.basename(f['repo_file'])}" for n, f in enumerate(uploadable_files)},
+                }
             case 'maven2':
-                files = [(f"{asset_type}.asset1", (repo_file, open(local_file, 'rb'), mime_type))]
-                extension = re.search(ASSET_TYPE_FILTERS['maven2']['all'], local_file).group(0).lstrip('.')
-                local_base_name = local_file.replace(f".{extension}", '')
-                local_pom_file = f"{local_base_name}.pom"
-                pom_exists = os.path.exists(local_pom_file) and os.path.getsize(local_pom_file) > 0
-                if pom_exists:
-                    pom_mime_type = self.get_file_mime_type(local_pom_file)
-                    repo_base_name = repo_file.replace(f".{extension}", '')
-                    repo_pom_file = f"{repo_base_name}.pom"
-                    files.append((f"{asset_type}.asset2", (repo_pom_file, open(local_pom_file, 'rb'), pom_mime_type)))
-                data = self.get_maven_info(repo_file, pom_exists)
-            case 'yum':
-                files = [(f"{asset_type}.asset", (repo_file, open(local_file, 'rb'), mime_type))]
-                data = {"yum.directory": f"{repo_path}", "yum.asset.filename": f"{repo_filename}"}
-            case _: # apt, npm, pypi, raw, docker, gem, nuget
-                files = [(f"{asset_type}.asset", (repo_file, open(local_file, 'rb'), mime_type))]
+                files = [(f"{asset_type}.asset{n}", (f['repo_file'], open(f['local_file'], 'rb'), f['mime_type'])) for n, f in enumerate(uploadable_files)]
+                data = self.get_maven_info(uploadable_files)
+            case _:  # apt, npm, pypi, raw, docker, gem, nuget, yum
+                if len(uploadable_files) != 1:
+                    raise ValueError(f"Only one file can be uploaded to a {asset_type} repo per component. Found {len(uploadable_files)} files.")
+                files = [(f"{asset_type}.asset", (f['repo_file'], open(f['local_file'], 'rb'), f['mime_type'])) for f in uploadable_files]
+                if asset_type == 'yum':
+                    data = {
+                        f"{asset_type}.directory": f"{repo_path}",
+                        **{f"{asset_type}.asset.filename": f"{os.path.basename(f['repo_file'])}" for f in uploadable_files},
+                    }
         self.api_post(f"components?repository={repo}", server, files, data)
 
     def upload_components(self, repo, server: NexusServer, asset_type, path='.', overwrite=False):
         """Upload all component files found in <path> to <repo>"""
         asset_filter = ASSET_TYPE_FILTERS.get(asset_type)
-        log_print(f"Uploading {asset_type} Components to repo : {repo} with filter : {asset_filter.get('upload', asset_filter['all'])}")
-        assets = []
+        log_print(f"Uploading {asset_type} Components to repo : {repo} with filter : {asset_filter}")
+        assets = {}
+        uploaded_assets = []
         if not overwrite:
             assets, _ = self.get_repo_assets(repo, server)
         count = 0
@@ -381,58 +374,76 @@ class NexusCopy:
                 count += 1
                 # log_print(f"root: {root} - name: {name}")
                 local_file = os.path.join(root, name)
-                if asset_filter is None or re.search(asset_filter.get('upload', asset_filter['all']), name):
+                if asset_filter is None or re.search(asset_filter, name):
                     repo_file = local_file.removeprefix(path)
                     if not repo_file.startswith('/'):
                         repo_file = f"/{repo_file}"
                     if not overwrite:
                         # log_print(f"repo_file: {repo_file} - assets: {assets.keys()}")
-                        if repo_file in assets.keys():
+                        if repo_file in assets.keys() or local_file in uploaded_assets:
                             log_print(f"NOT uploading: local_file: {local_file}, it already exists in repo. - {count}/{file_count}")
                             continue
-                    mime_type = self.get_file_mime_type(local_file)
-                    log_print(f"Uploading: local_file: {local_file} - repo_file: {repo_file} - size: {os.path.getsize(local_file)} - mime_type: {mime_type} - {count}/{file_count}")
-                    self.upload_component(repo, server, local_file, repo_file, asset_type, mime_type)
+                    local_path = os.path.dirname(local_file)
+                    repo_path = os.path.dirname(repo_file)
+                    sibling_files = os.listdir(local_path)
+                    uploadable_files = [
+                        {
+                            "local_file": f"{local_path}/{f}",
+                            "repo_file": f"{repo_path}/{f}",
+                            "mime_type": self.get_file_mime_type(f"{local_path}/{f}"),
+                            "extension": re.search(ASSET_TYPE_FILTERS['maven2'], f).group(0).lstrip('.'),
+                        }
+                        for f in sibling_files
+                        if (asset_filter is None or re.search(asset_filter, f)) and os.path.getsize(f"{local_path}/{f}") > 0
+                    ]
+                    log_print(
+                        f"Uploading {count}/{file_count}:\n" +
+                        "\n".join([
+                            f"local_file: {f['local_file']} - repo_file: {f['repo_file']} - size: {os.path.getsize(f['local_file'])} - mime_type: {f['mime_type']}"
+                            for f in uploadable_files
+                        ])
+                    )
+                    self.upload_component(repo, server, asset_type, uploadable_files)
+                    uploaded_assets.extend([f['local_file'] for f in uploadable_files])
                 else:
                     log_print(f"Ignoring filtered local_file: {local_file} - {count}/{file_count}")
 
     @staticmethod
-    def get_maven_info(repo_file, pom_exists=False):
+    def get_maven_info(uploadable_files):
         """Get maven info from a maven file path"""
+        file_info = {
+            f"maven2.asset{n}.extension": f['extension']
+            for n, f in enumerate(uploadable_files)
+        }
+
+        repo_file = uploadable_files[0]['repo_file']
         parts = repo_file.split('/')
         if parts[0] == '':
             parts.pop(0)
-        file_name = parts.pop(-1)
-        # extension = file_name.replace(f"{artifact_id}-{version}.", '')
-        extension = re.search(ASSET_TYPE_FILTERS['maven2']['all'], file_name).group(0).lstrip('.')
-        file_info = {
-            'maven2.asset1.extension': extension
-        }
+        _ = parts.pop(-1)  # we don't need the filename here
+        version = parts.pop(-1)
+        artifact_id = parts.pop(-1)
+        groupid = '.'.join(parts)
 
-        if pom_exists:
-            pom_info = {
+        for n, f in enumerate(uploadable_files):
+            version_classifier_re = rf"{version}-(.+)\.{f['extension']}$"
+            r = re.search(version_classifier_re, f['local_file'])
+            if r:
+                file_info[f"maven2.asset{n}.classifier"] = r.group(1)
+
+        if "pom" in [f['extension'] for f in uploadable_files]:
+            return {
                 **file_info,
-                'maven2.asset2.extension': 'pom'
+                'maven2.generate-pom': 'false',
             }
-            return pom_info
 
         else:
-            version = parts.pop(-1)
-            artifact_id = parts.pop(-1)
-            groupid = '.'.join(parts)
-            artefact_info = {
+            return {
+                **file_info,
                 'maven2.groupId': groupid,
                 'maven2.artifactId': artifact_id,
                 'maven2.version': version,
-                **file_info
             }
-            base_name = file_name.replace(f".{extension}", '')
-            f = rf'{version}-.+$'
-            r = re.search(f, base_name)
-            if r:
-                classifier = r.group(0).replace(f'{version}-', '')
-                artefact_info['maven2.asset1.classifier'] = classifier
-            return artefact_info
 
     # Docker
     # https://docs.docker.com/engine/install/debian/
