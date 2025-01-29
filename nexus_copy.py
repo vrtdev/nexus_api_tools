@@ -307,7 +307,7 @@ class NexusCopy:
         for _, asset in assets.items():
             count += 1
             local_file = f"{path}/{asset['path']}"
-            if not os.path.exists(local_file) or force_download:
+            if not os.path.exists(local_file) or os.path.getsize(local_file) == 0 or force_download:
                 if not os.path.exists(os.path.dirname(local_file)):
                     log_print(f"Creating directory : {path}/{os.path.dirname(asset['path'])}")
                     os.makedirs(os.path.dirname(local_file), exist_ok=True)
@@ -374,7 +374,7 @@ class NexusCopy:
                             log_print(f"NOT uploading: local_file: {local_file}, it already exists in repo. - {count}/{file_count}")
                             continue
                     mime_type = self.get_file_mime_type(local_file)
-                    log_print(f"Uploading: local_file: {local_file} - repo_file: {repo_file} - mime_type: {mime_type} - {count}/{file_count}")
+                    log_print(f"Uploading: local_file: {local_file} - repo_file: {repo_file} - size: {os.path.getsize(local_file)} - mime_type: {mime_type} - {count}/{file_count}")
                     self.upload_component(repo, server, local_file, repo_file, asset_type, mime_type)
                 else:
                     log_print(f"Ignoring filtered local_file: {local_file} - {count}/{file_count}")
