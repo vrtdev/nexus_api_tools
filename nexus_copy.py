@@ -25,6 +25,10 @@ from requests.auth import HTTPBasicAuth
 from config import NexusCopyConfig, NexusServer, Action
 
 mimetypes.init()
+mimetypes.add_type("application/xml", ".pom")
+mimetypes.add_type("application/json", ".module")
+mimetypes.add_type("application/java-archive", ".aar")
+mimetypes.add_type("application/java-archive", ".ear")
 
 SOURCE = NexusServer(
     host=os.environ.get('SOURCE_NEXUS_SERVER'),
