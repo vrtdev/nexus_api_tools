@@ -387,7 +387,7 @@ class NexusCopy:
             parts.pop(0)
         file_name = parts.pop(-1)
         # extension = file_name.replace(f"{artifact_id}-{version}.", '')
-        extension = re.search(rf"{ASSET_TYPE_FILTERS['maven2']}", file_name).group(0).lstrip('.')
+        extension = re.search(ASSET_TYPE_FILTERS['maven2']['all'], file_name).group(0).lstrip('.')
         file_info = {
             'maven2.asset1.extension': extension
         }
