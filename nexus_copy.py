@@ -331,7 +331,7 @@ class NexusCopy:
                 data = {"raw.directory": f"{repo_path}", "raw.asset1.filename": f"{repo_filename}"}
             case 'maven2':
                 files = [(f"{asset_type}.asset1", (repo_file, open(local_file, 'rb'), mime_type))]
-                extension = re.search(rf"{ASSET_TYPE_FILTERS['maven2']}", local_file).group(0).lstrip('.')
+                extension = re.search(ASSET_TYPE_FILTERS['maven2']['all'], local_file).group(0).lstrip('.')
                 local_base_name = local_file.replace(f".{extension}", '')
                 local_pom_file = f"{local_base_name}.pom"
                 pom_exists = os.path.exists(local_pom_file) and os.path.getsize(local_pom_file) > 0
