@@ -78,10 +78,10 @@ class NexusCopy:
             match act:
                 case 'list_assets':
                     self.list_repo_assets(action.repo, action.source)
-                    return
+                    continue
                 case 'list_components':
                     self.list_repo_components(action.repo, action.source)
-                    return
+                    continue
                 case _:
                     pass
 
@@ -96,29 +96,29 @@ class NexusCopy:
                 match act:
                     case 'download_assets':
                         self.download_repo_assets_docker(action.source, action.repo)
-                        return
+                        continue
                     case 'upload_components':
                         self.tag_docker_images(action.source, action.destination)
                         self.upload_components_docker(action.destination)
-                        return
+                        continue
                     case 'both':
                         self.download_repo_assets_docker(action.source, action.repo)
                         self.tag_docker_images(action.source, action.destination)
                         self.upload_components_docker(action.destination)
-                        return
+                        continue
 
             else:
                 match act:
                     case 'download_assets':
                         self.download_repo_assets(action.repo, action.source, path)
-                        return
+                        continue
                     case 'upload_components':
                         self.upload_components(action.target_repo, action.destination, action.repo_type, path)
-                        return
+                        continue
                     case 'both':
                         self.download_repo_assets(action.repo, action.source, path)
                         self.upload_components(action.target_repo, action.destination, action.repo_type, path)
-                        return
+                        continue
 
     @staticmethod
     def get_file_mime_type(some_file):
