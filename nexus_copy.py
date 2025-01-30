@@ -393,7 +393,7 @@ class NexusCopy:
                             "local_file": f"{local_path}/{f}",
                             "repo_file": f"{repo_path}/{f}",
                             "mime_type": self.get_file_mime_type(f"{local_path}/{f}"),
-                            "extension": re.search(ASSET_TYPE_FILTERS['maven2'], f).group(0).lstrip('.'),
+                            "extension": re.search(asset_filter, f).group(0).lstrip('.'),
                         }
                         for f in sibling_files
                         if (asset_filter is None or re.search(asset_filter, f)) and os.path.getsize(f"{local_path}/{f}") > 0
