@@ -4,6 +4,8 @@ Nexus API tools
 
 Tools to migrate repositories between Nexus servers.
 
+Note: Nexus API does not support uploading to Maven SNAPSHOT repositories.
+
 This tool can modify the DockerRootDir / data-root setting so it should NOT be run on a Docker server.
 
 ## Installation

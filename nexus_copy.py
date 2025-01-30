@@ -428,6 +428,9 @@ class NexusCopy:
             parts.pop(0)
         _ = parts.pop(-1)  # we don't need the filename here
         version = parts.pop(-1)
+        if version.endswith('-SNAPSHOT'):
+            raise ValueError(f"{repo_file}: Uploading to SNAPSHOT repositories is unsupported by Nexus API - use maven client instead if necessary.")
+
         artifact_id = parts.pop(-1)
         groupid = '.'.join(parts)
 
