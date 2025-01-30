@@ -385,19 +385,31 @@ class NexusCopy:
                         if repo_file in assets.keys() or local_file in uploaded_assets:
                             log_print(f"NOT uploading: local_file: {local_file}, it already exists in repo. - {count}/{file_count}")
                             continue
-                    local_path = os.path.dirname(local_file)
-                    repo_path = os.path.dirname(repo_file)
-                    sibling_files = os.listdir(local_path)
-                    uploadable_files = [
-                        {
-                            "local_file": f"{local_path}/{f}",
-                            "repo_file": f"{repo_path}/{f}",
-                            "mime_type": self.get_file_mime_type(f"{local_path}/{f}"),
-                            "extension": re.search(asset_filter, f).group(0).lstrip('.'),
-                        }
-                        for f in sibling_files
-                        if (asset_filter is None or re.search(asset_filter, f)) and os.path.getsize(f"{local_path}/{f}") > 0
-                    ]
+
+                    if asset_type == 'maven2':
+                        local_path = os.path.dirname(local_file)
+                        repo_path = os.path.dirname(repo_file)
+                        sibling_files = os.listdir(local_path)
+                        uploadable_files = [
+                            {
+                                "local_file": f"{local_path}/{f}",
+                                "repo_file": f"{repo_path}/{f}",
+                                "mime_type": self.get_file_mime_type(f"{local_path}/{f}"),
+                                "extension": re.search(asset_filter, f).group(0).lstrip('.'),
+                            }
+                            for f in sibling_files
+                            if (asset_filter is None or re.search(asset_filter, f)) and os.path.getsize(f"{local_path}/{f}") > 0
+                        ]
+                    else:
+                        uploadable_files = [
+                            {
+                                "local_file": local_file,
+                                "repo_file": repo_file,
+                                "mime_type": self.get_file_mime_type(local_file),
+                                "extension": re.search(asset_filter, local_file).group(0).lstrip('.'),
+                            }
+                        ]
+
                     log_print(
                         f"Uploading {count}/{file_count}:\n" +
                         "\n".join([
