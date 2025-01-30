@@ -209,6 +209,8 @@ class NexusCopy:
         data = self.api_get(f"{item_type}?repository={repo}", server)
         for item in data['items']:
             yield item
+            if self.ncconfig.one:
+                return
         while (token_req := self.get_continuationtoken(data)) and (token_req is not False):
             more_data = self.api_get(f"{item_type}?repository={repo}{token_req}", server)
             for item in more_data['items']:
@@ -312,7 +314,7 @@ class NexusCopy:
             count += len(component['assets'])
         log_print(f"component count: {count}")
 
-    def download_repo_assets(self, repo, server: NexusServer, path='.', force_download=False):
+    def download_repo_assets(self, repo, server: NexusServer, path='.'):
         log_print(f"Downloading Assets from repo : {args.download_assets}")
         assets, _ = self.get_repo_assets(repo, server)
         count = 0
@@ -320,7 +322,7 @@ class NexusCopy:
         for _, asset in assets.items():
             count += 1
             local_file = f"{path}/{asset['path']}"
-            if not os.path.exists(local_file) or os.path.getsize(local_file) == 0 or force_download:
+            if not os.path.exists(local_file) or os.path.getsize(local_file) == 0 or self.ncconfig.force:
                 if not os.path.exists(os.path.dirname(local_file)):
                     log_print(f"Creating directory : {path}/{os.path.dirname(asset['path'])}")
                     os.makedirs(os.path.dirname(local_file), exist_ok=True)
@@ -357,13 +359,13 @@ class NexusCopy:
                     }
         self.api_post(f"components?repository={repo}", server, files, data)
 
-    def upload_components(self, repo, server: NexusServer, asset_type, path='.', overwrite=False):
+    def upload_components(self, repo, server: NexusServer, asset_type, path='.'):
         """Upload all component files found in <path> to <repo>"""
         asset_filter = ASSET_TYPE_FILTERS.get(asset_type)
         log_print(f"Uploading {asset_type} Components to repo : {repo} with filter : {asset_filter}")
         assets = {}
         uploaded_assets = []
-        if not overwrite:
+        if not self.ncconfig.force:
             assets, _ = self.get_repo_assets(repo, server)
         count = 0
         file_count = 0
@@ -378,7 +380,7 @@ class NexusCopy:
                     repo_file = local_file.removeprefix(path)
                     if not repo_file.startswith('/'):
                         repo_file = f"/{repo_file}"
-                    if not overwrite:
+                    if not self.ncconfig.force:
                         # log_print(f"repo_file: {repo_file} - assets: {assets.keys()}")
                         if repo_file in assets.keys() or local_file in uploaded_assets:
                             log_print(f"NOT uploading: local_file: {local_file}, it already exists in repo. - {count}/{file_count}")
@@ -405,8 +407,12 @@ class NexusCopy:
                     )
                     self.upload_component(repo, server, asset_type, uploadable_files)
                     uploaded_assets.extend([f['local_file'] for f in uploadable_files])
+                    if self.ncconfig.one:
+                        break
                 else:
                     log_print(f"Ignoring filtered local_file: {local_file} - {count}/{file_count}")
+            if len(uploaded_assets) > 0 and self.ncconfig.one:
+                break
 
     @staticmethod
     def get_maven_info(uploadable_files):
@@ -569,6 +575,8 @@ if __name__ == "__main__":
     parser.add_argument("--download-assets", help="Repo to download from.")
     parser.add_argument("--upload-type", help="Repo type to upload.")
     parser.add_argument("--upload-components", help="Repo to upload components to.")
+    parser.add_argument("--one", help="Stop every action after handling 1 asset, component, ...", nargs='?', const=True)
+    parser.add_argument("--force", help="Download or upload files even if they already exist at the destination", nargs='?', const=True)
 
     args = parser.parse_args()
 
@@ -641,5 +649,8 @@ if __name__ == "__main__":
 
     if args.upload_components and args.upload_type:
         config.actions.append(Action(repo=args.upload_components, repo_type=args.upload_type, action='upload_components'))
+
+    config.one = args.one
+    config.force = args.force
 
     NexusCopy(config).run()

@@ -74,6 +74,8 @@ class NexusCopyConfig:
     destination: NexusServer = field(default_factory=NexusServer)
     default_action: Optional[str] = "both"
     local_path: str = "."
+    one: bool = None
+    force: bool = None
 
     def fix_paths(self):
         # Ensure `local_path` never ends with a '/'
