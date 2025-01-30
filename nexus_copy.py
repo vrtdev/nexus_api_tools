@@ -44,7 +44,7 @@ API_PATH = 'service/rest/v1'
 ASSET_TYPE_FILTERS = {
     'apt': r'\.(deb|udeb)$',
     'npm': r'\.tgz$',
-    'maven2': r'\.((?:-sources\.)?jar|zip|xml|pom|war|ear|aar|module)$',
+    'maven2': r'\.(jar|zip|xml|pom|war|ear|aar|module)$',
     'yum': r'\.(rpm|drpm)$',
     'pypi': r'\.tar\.gz$',
     'rubygems': r'\.gem$',
@@ -432,8 +432,8 @@ class NexusCopy:
         groupid = '.'.join(parts)
 
         for n, f in enumerate(uploadable_files):
-            version_classifier_re = rf"{version}-(.+)\.{f['extension']}$"
-            r = re.search(version_classifier_re, f['local_file'])
+            version_classifier_re = rf"-(sources)\.{f['extension']}$"
+            r = re.search(version_classifier_re, os.path.basename(f['local_file']))
             if r:
                 file_info[f"maven2.asset{n}.classifier"] = r.group(1)
 
