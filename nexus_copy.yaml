@@ -30,10 +30,6 @@ actions:
     target_repo: public-vrt-maven-releases
     description: Get & upload vrt-releases repo
     repo_type: maven2
-  - repo: vrt-snapshots
-    target_repo: public-vrt-maven-snapshots
-    description: Get & upload vrt-snapshots repo
-    repo_type: maven2
   - repo: vrtnu-design-system
     target_repo: public-vrtnu-design-system
     description: Get & upload vrtnu-design-system repo
