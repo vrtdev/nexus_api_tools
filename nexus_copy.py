@@ -121,8 +121,13 @@ class NexusCopy:
                         self.upload_components(action.target_repo, action.destination, action.repo_type, path)
                         continue
                     case 'both':
-                        self.download_repo_assets(action.repo, action.source, path)
-                        self.upload_components(action.target_repo, action.destination, action.repo_type, path)
+                        if self.ncconfig.one:
+                            target_assets = None
+                        else:
+                            target_assets, _ = self.get_repo_assets(action.target_repo, action.destination)
+                            target_assets = target_assets.keys()
+                        self.download_repo_assets(action.repo, action.source, path, target_assets)
+                        self.upload_components(action.target_repo, action.destination, action.repo_type, path, target_assets)
                         continue
 
     @staticmethod
@@ -314,25 +319,29 @@ class NexusCopy:
             count += len(component['assets'])
         log_print(f"component count: {count}")
 
-    def download_repo_assets(self, repo, server: NexusServer, path='.'):
-        log_print(f"Downloading Assets from repo : {args.download_assets}")
+    def download_repo_assets(self, repo, server: NexusServer, path='.', target_assets=None):
+        log_print(f"Downloading Assets from repo : {repo}")
         assets, _ = self.get_repo_assets(repo, server)
         count = 0
         items = len(assets)
         for _, asset in assets.items():
             count += 1
-            local_file = f"{path}/{asset['path']}"
-            if not os.path.exists(local_file) or os.path.getsize(local_file) == 0 or self.ncconfig.force:
-                if not os.path.exists(os.path.dirname(local_file)):
-                    log_print(f"Creating directory : {path}/{os.path.dirname(asset['path'])}")
-                    os.makedirs(os.path.dirname(local_file), exist_ok=True)
-                log_print(f"Downloading asset '{asset['downloadUrl']}' to '{local_file}' - {count}/{items}")
-                _, response = self.api_call(asset['downloadUrl'].replace(f"{server.host}/", ''), server)
-                with open(local_file, 'wb') as f:
-                    f.write(response.content)
-                log_print(f"Downloaded file {local_file}, size: {os.path.getsize(local_file)}")
-            else:
-                log_print(f"Skipping download of '{local_file}' as it already exists. - {count}/{items}")
+            repo_file = asset['path']
+            if not repo_file.startswith('/'):
+                repo_file = f"/{repo_file}"
+            local_file = f"{path}{repo_file}"
+            if not self.ncconfig.force and repo_file in target_assets or (os.path.exists(local_file) and os.path.getsize(local_file) > 0):
+                log_print(f"Skipping download of '{repo_file}' as it already exists. - {count}/{items}")
+                continue
+
+            if not os.path.exists(os.path.dirname(local_file)):
+                log_print(f"Creating directory : {path}/{os.path.dirname(asset['path'])}")
+                os.makedirs(os.path.dirname(local_file), exist_ok=True)
+            log_print(f"Downloading asset '{asset['downloadUrl']}' to '{local_file}' - {count}/{items}")
+            _, response = self.api_call(asset['downloadUrl'].replace(f"{server.host}/", ''), server)
+            with open(local_file, 'wb') as f:
+                f.write(response.content)
+            log_print(f"Downloaded file {local_file}, size: {os.path.getsize(local_file)}")
 
     def upload_component(self, repo, server: NexusServer, asset_type, uploadable_files):
         """Upload single component <file> to <repo>"""
@@ -359,14 +368,17 @@ class NexusCopy:
                     }
         self.api_post(f"components?repository={repo}", server, files, data)
 
-    def upload_components(self, repo, server: NexusServer, asset_type, path='.'):
+    def upload_components(self, repo, server: NexusServer, asset_type, path='.', target_assets=None):
         """Upload all component files found in <path> to <repo>"""
         asset_filter = ASSET_TYPE_FILTERS.get(asset_type)
         log_print(f"Uploading {asset_type} Components to repo : {repo} with filter : {asset_filter}")
         assets = {}
         uploaded_assets = []
         if not self.ncconfig.force:
-            assets, _ = self.get_repo_assets(repo, server)
+            if target_assets:
+                assets = target_assets
+            else:
+                assets, _ = self.get_repo_assets(repo, server)
         count = 0
         file_count = 0
         for root, _, files in os.walk(path):
@@ -374,15 +386,13 @@ class NexusCopy:
         for root, _, files in os.walk(path):
             for name in files:
                 count += 1
-                # log_print(f"root: {root} - name: {name}")
                 local_file = os.path.join(root, name)
                 if asset_filter is None or re.search(asset_filter, name):
                     repo_file = local_file.removeprefix(path)
                     if not repo_file.startswith('/'):
                         repo_file = f"/{repo_file}"
                     if not self.ncconfig.force:
-                        # log_print(f"repo_file: {repo_file} - assets: {assets.keys()}")
-                        if repo_file in assets.keys() or local_file in uploaded_assets:
+                        if repo_file in assets or local_file in uploaded_assets:
                             log_print(f"NOT uploading: local_file: {local_file}, it already exists in repo. - {count}/{file_count}")
                             continue
 
