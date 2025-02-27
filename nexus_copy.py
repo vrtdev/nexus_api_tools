@@ -125,7 +125,7 @@ class NexusCopy:
                             target_assets = None
                         else:
                             target_assets, _ = self.get_repo_assets(action.target_repo, action.destination)
-                            target_assets = target_assets.keys()
+                            target_assets = [ta if ta.startswith('/') else f"/{ta}" for ta in target_assets.keys()]
                         self.download_repo_assets(action.repo, action.source, path, target_assets)
                         self.upload_components(action.target_repo, action.destination, action.repo_type, path, target_assets)
                         continue
