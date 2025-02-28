@@ -1,0 +1,23 @@
+source:
+  host: https://nexus.core.a51.be
+  user: <FILL_USERNAME_HERE>
+  password: <FILL_PASSWORD_HERE>
+destination:
+  host: https://nexus-public.core.a51.be
+  user: <FILL_USERNAME_HERE>
+  password: <FILL_PASSWORD_HERE>
+local_path: external-public
+default_action: both
+actions:
+  - target_repo: vrt-releases
+    repo: public-vrt-maven-releases
+    description: Get & upload vrt-releases repo
+    repo_type: maven2
+  - target_repo: vrtnu-design-system
+    repo: public-vrtnu-design-system
+    description: Get & upload vrtnu-design-system repo
+    repo_type: npm
+  - target_repo: vrt-npm
+    repo: public-vrt-npm
+    description: Get & upload vrt-npm repo
+    repo_type: npm

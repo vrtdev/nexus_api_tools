@@ -24,25 +24,46 @@ pip install -r requirements.txt
 
 ## Action file
 
-The Action file that can be passed as an argumet to the --file parameter is a yaml file with the following structure:
+The Action file that can be passed as an argument to the --file parameter is a yaml file with the following structure:
 
 ```yaml
-config:
-  # local_path: 
-  source_server: https://<source repo server>
-  # source_user: admin
-  # source_password: admin123
-  destination_server: https://<destination repo server>
-  # destination_user: admin
-  # destination_password: admin123
-  docker_source_server: <source docker repo server>
-  docker_destination_server: <destination docker repo server>
-  default_action: both
+source:
+  host: https://nexus-public.core.a51.be
+  docker_host: <source docker repo host>
+  user: admin
+  password: FILL_PASSWORD_HERE
+destination:
+  host: https://nexus.core.a51.be
+  docker_host: <destination docker repo host>
+  user: admin
+  password: admin123
+local_path: some_dir
+default_action: both
 actions:
-  # - repo: <repo-name>
-    # description: Get & upload <repo-name> repo
-    # type: <type>
-    # action: both  # default, can be omitted
-    # path: data/<repo>  # default, can be omitted
-    # active: true  # default, can be omitted
+  - repo: <repo-name>
+    description: Get & upload <repo-name> repo
+    repo_type: <repo_type>
+    action: both  # default, can be omitted
+    path: data/<repo>  # default, can be omitted
+    active: true  # default, can be omitted
+  - repo: docker
+    description: Get & upload docker repo
+    repo_type: docker
+    source:
+      docker_host: <source docker repo host>
+    destination:
+      docker_host: <destination docker repo host>
+    active: false
+  - repo: vrt-releases
+    target_repo: public-vrt-maven-releases
+    description: Get & upload vrt-releases repo
+    repo_type: maven2
+  - repo: vrtnu-design-system
+    target_repo: public-vrtnu-design-system
+    description: Get & upload vrtnu-design-system repo
+    repo_type: npm
+  - repo: vrt-npm
+    target_repo: public-vrt-npm
+    description: Get & upload vrt-npm repo
+    repo_type: npm
 ```
